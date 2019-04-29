@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <link rel="stylesheet" href="stylesheets/stylesheet.css">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
+        integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+    <title>打地鼠</title>
+</head>
+
+<body>
+    <div id="game">
+        <div id="playground">
+            <!-- <table>
+                <tr>
+                    <td>
+                        <div class="mole active"></div>
+                    </td>
+                    <td>
+                        <div class="mole"></div>
+                    </td>
+                    <td>
+                        <div class="mole"></div>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <div class="mole"></div>
+                    </td>
+                    <td>
+                        <div class="mole"></div>
+                    </td>
+                    <td>
+                        <div class="mole"></div>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <div class="mole"></div>
+                    </td>
+                    <td>
+                        <div class="mole"></div>
+                    </td>
+                    <td>
+                        <div class="mole"></div>
+                    </td>
+                </tr>
+            </table> -->
+        </div>
+        <div id="ScoreBoard">
+            <h2>ScoreBoard</h2>
+            <h3>
+                Your Score:
+                <span id="score"></span>
+            </h3>
+            <h3>
+                Level:
+                <span id="level"></span>
+            </h3>
+            <h3>
+                Life:
+                <div class="progress">
+                    <div id="life-bar" class="progress-bar progress-bar-striped" role="progressbar" style="width: 100%"
+                        aria-valuenow="100" aria-valuemin="0" aria-valuemax="100">100</div>
+                </div>
+            </h3>
+
+            <div class="setBlock">
+                <select class="custom-select" id="selectSizing">
+                    <option value="3" selected>3</option>
+                    <option value="4">4</option>
+                    <option value="5">5</option>
+                    <option value="6">6</option>
+                </select>
+                <div class="mt-2">
+                    <button type="button" class="btn btn-light" id="start">Start</button>
+                    <button type="button" class="btn btn-light" id="stop">Stop</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"
+        integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo"
+        crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"
+        integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1"
+        crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"
+        integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM"
+        crossorigin="anonymous"></script>
+    <script src="jquery-3.3.1.js"></script>
+    <script>
+        $(function () {
+            var score = 0,
+                life = 100,
+                timer = null,
+                levelProfiles = [
+                    { level: 1, score: 0, moles: 1, interval: 1500 },
+                    { level: 2, score: 100, moles: 2, interval: 1500 },
+                    { level: 3, score: 200, moles: 2, interval: 1250 },
+                    { level: 4, score: 300, moles: 2, interval: 1000 },
+                    { level: 5, score: 500, moles: 3, interval: 1000 },
+                    { level: 6, score: 1000, moles: 3, interval: 750 },
+                ];
+
+            var $playground = $("#playground");
+
+            $playground.on('click', '.mole', function () {
+                var $this = $(this);
+                console.log("痛");
+                if ($this.is('.active')) {
+                    score += 10;
+                    updateScore();
+                    $this.removeClass('active').addClass('hit');
+                }
+            });
+            $('#selectSizing').change(function () {
+                var $this = $(this);
+                createPlayground($this.val());
+            });
+
+            function createPlayground(side) {
+                $playground.empty();
+
+                var $table = $("<table></table>");
+                var counter = 0;
+
+                for (var i = 0; i < side; i++) {
+                    var $tr = $("<tr></tr>");
+                    for (var j = 0; j < side; j++) {
+                        var $td = $("<td></td>");
+                        $td.appendTo($tr);
+                        var $div = $("<div></div>")
+                            .addClass("mole")
+                            .appendTo($td);
+                    }
+                    $tr.appendTo($table);
+                }
+
+                $table.appendTo($playground)
+                    .css({//因為畫面已經置中，但每生產一張圖就會往右下位移，所以要重新歸位(長寬的一半為中心點)
+                        'marginTop': -1 * ($table.outerHeight() / 2),
+                        'marginLeft': -1 * ($table.outerWidth() / 2)
+                    });
+            }
+
+            $('#start').click(function () {
+                startGame();
+            });
+
+            function startGame() {
+                score = 0;
+                life = 100;
+                updateLife();
+                nextMole();
+            }
+
+            $('#stop').click(function () {
+                stopGame();
+            });
+
+            function stopGame() {
+                clearTimeout(timer);
+                $(".mole.active").removeClass("active");
+                $(".mole.hit").removeClass("hit");
+            }
+
+            function getLevelProfile() {
+                var levelProfile = levelProfiles[0];
+                for (var i = 0; i < levelProfiles.length; i++) {
+                    if (score >= levelProfiles[i]["score"]) {
+                        levelProfile = levelProfiles[i];
+                    }
+                    else {
+                        break;
+                    }
+                }
+                return levelProfile;
+            }
+
+            function updateScore() {
+                $("#score").html(score);
+            }
+            function updateLife() {
+                $("#life-bar")
+                    .css('width', life + "%")
+                    .attr('aria-valuenow', life)
+                    .html(life);
+            }
+            function nextMole() {
+                var $moles = $playground.find(".mole");
+                var levelProfile = getLevelProfile();
+                var active = $moles.filter(".active").length;
+                var hit = $moles.filter(".hit").length;
+
+                life -= Math.max(0, active - hit); //如果沒讀到至少會回傳0，不會讓程式死掉
+                updateLife();
+
+                if (life <= 0) {
+                    stopGame();
+                    alert("遊戲結束");
+                    return;
+                }
+                $moles.removeClass("active").removeClass("hit");
+
+                $("#level").text(levelProfile.level);
+
+                for (var i = 0; i < levelProfile.moles; i++) {
+                    var next = Math.floor(Math.random() * $moles.length);
+                    $moles.eq(next).addClass("active");
+                }
+                timer = setTimeout(nextMole, levelProfile.interval);
+            }
+            createPlayground(3);
+        });
+    </script>
+</body>
+
+</html>
